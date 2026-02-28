@@ -1,4 +1,5 @@
 const { getPage, logReview } = require("../supabase");
+const { getOrgContext } = require("../claude");
 const { isContentSubmission } = require("../checks/classifier");
 const { factCheck }      = require("../checks/factCheck");
 const { copyrightCheck } = require("../checks/copyrightCheck");
@@ -35,10 +36,13 @@ async function handleMessage(ctx) {
       reply_to_message_id: msg.message_id,
     });
 
+    // ── Fetch org context from Telegram MCP (once, shared across all checks) ──
+    const orgContext = await getOrgContext(page);
+
     // ── Run all checks in parallel ────────────────────────────────────────────
     const [factResult, copyrightResult, sourceResult] = await Promise.all([
-      factCheck(text, page),
-      copyrightCheck(text, page),
+      factCheck(text, page, orgContext),
+      copyrightCheck(text, page, orgContext),
       sourceCheck(text, page),
     ]);
 
@@ -80,4 +84,3 @@ async function handleMessage(ctx) {
 }
 
 module.exports = { handleMessage };
-

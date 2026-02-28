@@ -1,5 +1,5 @@
 const { getPage, logGeneration } = require("../supabase");
-const { callSonnet } = require("../claude");
+const { callSonnetWithMCP } = require("../claude");
 const { buildSystemPrompt } = require("../library");
 
 const TONES = ["shocking", "nostalgic", "inspiring", "funny", "facts"];
@@ -34,11 +34,18 @@ async function handleGenerate(ctx) {
       { reply_to_message_id: ctx.message.message_id }
     );
 
-    const raw = await callSonnet(
+    const raw = await callSonnetWithMCP(
       buildSystemPrompt(page),
       `Generate 3 different super post concepts for ${page.handle}.
 Tone: ${tone}
 ${seedTopic ? `Seed topic: ${seedTopic}` : `Pick the most viral-worthy topics for ${page.niche}.`}
+
+Before generating, use the telegram MCP tool to search for:
+- Recent content approved or rejected for ${page.handle} or similar ${page.niche} pages
+- Current campaign themes or priorities discussed in org chats
+- What angles or formats have performed well recently
+
+Then generate 3 posts informed by that org context.
 
 For each post:
 - TITLE in ALL CAPS (4-8 words)
@@ -94,4 +101,3 @@ Respond ONLY with valid JSON, no markdown:
 }
 
 module.exports = { handleGenerate };
-
