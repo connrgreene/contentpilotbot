@@ -36,7 +36,7 @@ async function handleGenerate(ctx) {
 
     const raw = await callSonnetWithMCP(
       buildSystemPrompt(page),
-      `Generate 3 different super post concepts for ${page.handle}.
+      `Generate EXACTLY 3 super post concepts for ${page.handle}. No more, no less.
 Tone: ${tone}
 ${seedTopic ? `Seed topic: ${seedTopic}` : `Pick the most viral-worthy topics for ${page.niche}.`}
 
@@ -62,7 +62,7 @@ Respond ONLY with valid JSON, no markdown:
       const cleaned = raw.replace(/```json|```/g, "").trim();
       const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("No JSON object found in response");
-      posts = JSON.parse(jsonMatch[0]).posts;
+      posts = JSON.parse(jsonMatch[0]).posts.slice(0, 3);
       if (!Array.isArray(posts) || posts.length === 0) throw new Error("Empty posts array");
     } catch (parseErr) {
       console.error("Generate parse error:", parseErr.message, "\nRaw:", raw?.slice(0, 300));
