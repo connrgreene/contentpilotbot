@@ -11,9 +11,11 @@ const reviewed = new Set();
 async function handleMessage(ctx) {
   try {
     const msg = ctx.message;
-    if (!msg?.text) return;
     if (msg.from?.is_bot) return;
-    if (msg.text.startsWith("/")) return;
+    // Accept both plain text messages and media messages with a caption
+    const text = msg.text || msg.caption;
+    if (!text) return;
+    if (text.startsWith("/")) return;
     if (reviewed.has(msg.message_id)) return;
 
     reviewed.add(msg.message_id);
@@ -24,8 +26,6 @@ async function handleMessage(ctx) {
     // ── Is this chat registered? ──────────────────────────────────────────────
     const page = await getPage(chatId);
     if (!page) return; // silently ignore unregistered chats
-
-    const text = msg.text;
 
     // ── Is this a content submission? ─────────────────────────────────────────
     const isSubmission = await isContentSubmission(text);
