@@ -58,8 +58,14 @@ Respond ONLY with valid JSON, no markdown:
 
     let posts;
     try {
-      posts = JSON.parse(raw.replace(/```json|```/g, "").trim()).posts;
-    } catch {
+      // Strip markdown fences, then find the outermost JSON object
+      const cleaned = raw.replace(/```json|```/g, "").trim();
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error("No JSON object found in response");
+      posts = JSON.parse(jsonMatch[0]).posts;
+      if (!Array.isArray(posts) || posts.length === 0) throw new Error("Empty posts array");
+    } catch (parseErr) {
+      console.error("Generate parse error:", parseErr.message, "\nRaw:", raw?.slice(0, 300));
       await ctx.telegram.editMessageText(
         statusMsg.chat.id, statusMsg.message_id, undefined,
         "❌ Generation failed — couldn't parse response. Try again."

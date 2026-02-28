@@ -34,7 +34,7 @@ async function callSonnetWithMCP(system, user) {
   if (!MCP_URL) return callSonnet(system, user);
   const res = await client.beta.messages.create({
     model: "claude-sonnet-4-20250514",
-    max_tokens: 2500,
+    max_tokens: 5000,
     system,
     messages: [{ role: "user", content: user }],
     betas: ["mcp-client-2025-04-04"],
