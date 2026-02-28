@@ -30,16 +30,15 @@ if (WEBHOOK_URL) {
       let body = "";
       req.on("data", (chunk) => (body += chunk));
       req.on("end", async () => {
+        // Always 200 immediately — prevents Telegram from retrying failed updates
+        res.writeHead(200);
+        res.end("OK");
         try {
           console.log("📨 Webhook update received");
           const update = JSON.parse(body);
           await bot.handleUpdate(update);
-          res.writeHead(200);
-          res.end("OK");
         } catch (err) {
           console.error("Webhook handler error:", err.message);
-          res.writeHead(500);
-          res.end("Error");
         }
       });
     } else {
@@ -52,7 +51,7 @@ if (WEBHOOK_URL) {
   server.listen(PORT, async () => {
     console.log(`✅ HTTP server listening on port ${PORT}`);
     try {
-      await bot.telegram.setWebhook(webhookFullUrl);
+      await bot.telegram.setWebhook(webhookFullUrl, { drop_pending_updates: true });
       const info = await bot.telegram.getWebhookInfo();
       console.log(`✅ Webhook registered: ${info.url}`);
       if (info.last_error_message) {
