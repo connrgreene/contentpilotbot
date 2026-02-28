@@ -22,13 +22,18 @@ async function handleMessage(ctx) {
     if (reviewed.size > 500) reviewed.delete(reviewed.values().next().value);
 
     const chatId = ctx.chat.id;
+    console.log(`[msg] chatId=${chatId} textLen=${text.length}`);
 
     // ── Is this chat registered? ──────────────────────────────────────────────
     const page = await getPage(chatId);
-    if (!page) return; // silently ignore unregistered chats
+    if (!page) {
+      console.log(`[msg] no page found for chatId=${chatId} — skipping`);
+      return;
+    }
 
     // ── Is this a content submission? ─────────────────────────────────────────
     const isSubmission = await isContentSubmission(text);
+    console.log(`[msg] isSubmission=${isSubmission} for chatId=${chatId}`);
     if (!isSubmission) return;
 
     // ── Acknowledge ───────────────────────────────────────────────────────────
