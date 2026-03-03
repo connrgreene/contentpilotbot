@@ -52,10 +52,14 @@ async function handleMessage(ctx) {
 
     // ── Instagram link shortcut — enrich and skip classifier ─────────────────
     let instagramContext = "";
+    let igImageBase64 = null;
     const igUrl = extractInstagramUrl(text);
     if (igUrl) {
       console.log(`[ig] enriching ${igUrl}`);
-      instagramContext = await enrichInstagramLink(igUrl);
+      const enriched = await enrichInstagramLink(igUrl);
+      instagramContext = enriched.context;
+      igImageBase64    = enriched.imageBase64;
+      if (igImageBase64) console.log("[ig] og:image downloaded for vision analysis");
     }
 
     // ── Is this a content submission? ─────────────────────────────────────────
@@ -83,10 +87,13 @@ async function handleMessage(ctx) {
       reply_to_message_id: msg.message_id,
     });
 
-    // ── Extract visual context from video/photo ───────────────────────────────
+    // ── Extract visual context from video/photo/ig thumbnail ─────────────────
     let visualContext = "";
     try {
-      if (msg.video) {
+      if (igImageBase64) {
+        console.log("[media] analyzing Instagram og:image thumbnail");
+        visualContext = await analyzeVisual([igImageBase64], text);
+      } else if (msg.video) {
         const MAX_VIDEO_BYTES = 20 * 1024 * 1024; // 20MB Telegram bot limit
         if ((msg.video.file_size || 0) <= MAX_VIDEO_BYTES) {
           console.log(`[media] downloading video (${msg.video.file_size} bytes)`);

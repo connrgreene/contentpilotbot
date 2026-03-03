@@ -69,12 +69,28 @@ function decodeHTMLEntities(str) {
 }
 
 /**
+ * Download the og:image thumbnail from an Instagram post.
+ * Returns a base64 JPEG string or null on failure.
+ */
+async function fetchOGImage(imageUrl) {
+  try {
+    const res = await fetch(imageUrl, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return null;
+    const buf = await res.arrayBuffer();
+    return Buffer.from(buf).toString("base64");
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Main enrichment function.
- * Returns a plain-text context string to inject into the review,
- * or an empty string if nothing useful was found.
+ * Returns { context, imageBase64 } — context is text to inject into the review,
+ * imageBase64 is the og:image thumbnail for Claude Vision (or null).
  */
 async function enrichInstagramLink(url) {
   const lines = [`Instagram link submitted: ${url}`];
+  let imageBase64 = null;
 
   // 1. Try OG tags
   const og = await fetchOGTags(url);
@@ -82,6 +98,11 @@ async function enrichInstagramLink(url) {
     if (og.title)       lines.push(`Account/Title: ${og.title}`);
     if (og.description) lines.push(`Caption (from link preview): ${og.description}`);
     lines.push("(OG fetch succeeded — caption may be truncated)");
+
+    // Download the thumbnail for Claude Vision
+    if (og.imageUrl) {
+      imageBase64 = await fetchOGImage(og.imageUrl);
+    }
   } else {
     lines.push("(OG fetch failed — post may be private or deleted)");
   }
@@ -97,7 +118,7 @@ async function enrichInstagramLink(url) {
     // Tavily failure is non-fatal
   }
 
-  return lines.join("\n");
+  return { context: lines.join("\n"), imageBase64 };
 }
 
-module.exports = { extractInstagramUrl, enrichInstagramLink };
+module.exports = { extractInstagramUrl, enrichInstagramLink, fetchOGImage };
