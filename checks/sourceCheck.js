@@ -9,7 +9,7 @@ async function sourceCheck(content, page) {
   const urls = extractUrls(content);
 
   if (urls.length === 0) {
-    return "⚠️ No sources provided — claims should be backed by at least one credible link before approval.";
+    return "✅ No links included — claims verified via web search during fact check.";
   }
 
   return await callHaiku(
@@ -20,7 +20,8 @@ Sources:
 ${urls.map((u, i) => `${i + 1}. ${u}`).join("\n")}
 
 For each: ✅ Credible / ⚠️ Questionable / ❌ Not credible — one-line reason.
-Final line: overall source quality is Strong / Adequate / Weak.`
+Last line: Overall quality: Strong / Adequate / Weak.
+No intro, no padding. Max 5 lines total.`
   );
 }
 

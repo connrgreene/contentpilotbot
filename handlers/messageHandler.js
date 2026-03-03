@@ -136,16 +136,10 @@ async function handleMessage(ctx) {
     // ── Build reply ───────────────────────────────────────────────────────────
     const reply = [
       `📋 *Content Review* — ${page.handle}`,
-      "",
-      `*📌 Fact Check*`,
-      factResult,
-      "",
-      `*©️ Copyright / Fair Use*`,
-      copyrightResult,
-      "",
-      `*🔗 Sources*`,
-      sourceResult,
-      visualContext ? "\n*🎬 Visual*\n_Video/image analyzed — see fact & copyright notes above._" : "",
+      `*📌 Fact:* ${factResult}`,
+      `*©️ Copyright:* ${copyrightResult}`,
+      `*🔗 Sources:* ${sourceResult}`,
+      visualContext ? `*🎬 Visual:* _media analyzed — see above_` : "",
     ].filter(Boolean).join("\n");
 
     await ctx.telegram.editMessageText(

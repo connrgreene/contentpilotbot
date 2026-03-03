@@ -40,12 +40,10 @@ HARD RULES (for real-world factual claims only):
 5. If a person is listed as dead but sources show they are alive → ❌ FACTUAL ERROR
 6. If list items don't match the post's stated premise → ❌ CONCEPT INTEGRITY FAILURE
 
-For each claim output:
-[STATUS] Claim — reason + sources found (or "no sources found")
-
-End with:
-VERDICT: ✅ APPROVED / ⚠️ NEEDS REVISION / ❌ REJECT
-One-line summary of the biggest issue if not approved.
+OUTPUT FORMAT — be concise, no padding:
+• If all claims check out: one line only — "✅ APPROVED — [one-line reason]"
+• If issues exist: "⚠️ NEEDS REVISION" or "❌ REJECT" on the first line, then one bullet per problem claim (specific, no fluff)
+Max 6 lines total. No intro sentences.
 
 Content:
 """

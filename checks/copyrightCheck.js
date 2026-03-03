@@ -51,11 +51,10 @@ CHECK FOR:
 5. **Originality** — If similar posts already exist virally, flag that this isn't original content
 6. **Instagram strike risk** — Anything likely to trigger an automated or manual copyright claim?
 
-VERDICT FORMAT:
-Overall: ✅ CLEAR / ⚠️ MODERATE RISK / ❌ HIGH RISK
-
-Then bullet points for each concern found. Be specific — name the source if found in search results.
-If search results show this exact format/angle already exists, call it out directly.
+OUTPUT FORMAT — be concise, no padding:
+• If clear: one line only — "✅ CLEAR — [one-line reason]"
+• If issues: "⚠️ MODERATE RISK" or "❌ HIGH RISK" on the first line, then one bullet per concern (name the specific source if found)
+Max 5 lines total. No intro sentences.
 
 Content:
 """
