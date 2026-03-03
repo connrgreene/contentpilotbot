@@ -3,6 +3,7 @@ const { getOrgContext, analyzeVisual } = require("../claude");
 const { isContentSubmission, isFeedbackCorrection } = require("../checks/classifier");
 const { factCheck }      = require("../checks/factCheck");
 const { copyrightCheck } = require("../checks/copyrightCheck");
+const { fitCheck }       = require("../checks/fitCheck");
 const { extractVideoFrames, getPhotoBase64, downloadTelegramFile } = require("../media");
 const { extractInstagramUrl, enrichInstagramLink } = require("../instagram");
 
@@ -126,9 +127,10 @@ async function handleMessage(ctx) {
       (instagramContext ? `\n\nINSTAGRAM LINK CONTEXT:\n${instagramContext}` : "");
 
     // ── Run all checks in parallel ────────────────────────────────────────────
-    const [factResult, copyrightResult] = await Promise.all([
+    const [factResult, copyrightResult, fitResult] = await Promise.all([
       factCheck(text, page, fullOrgContext, visualContext),
       copyrightCheck(text, page, fullOrgContext, visualContext),
+      fitCheck(text, page),
     ]);
 
     // ── Build reply ───────────────────────────────────────────────────────────
@@ -136,6 +138,7 @@ async function handleMessage(ctx) {
       `📋 *Content Review* — ${page.handle}`,
       `*📌 Fact:* ${factResult}`,
       `*©️ Copyright:* ${copyrightResult}`,
+      `*✨ Fit:* ${fitResult}`,
       visualContext ? `*🎬 Visual:* _media analyzed — see above_` : "",
     ].filter(Boolean).join("\n");
 
