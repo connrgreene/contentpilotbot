@@ -9,8 +9,11 @@ async function fitCheck(content, page) {
   const pageProfile = [
     `Handle: ${page.handle}`,
     `Niche: ${page.niche}`,
-    page.content_focus ? `Content focus: ${page.content_focus}` : "",
-    page.system_prompt ? `Page style notes: ${page.system_prompt}` : "",
+    page.content_focus  ? `Content focus: ${page.content_focus}` : "",
+    page.system_prompt  ? `Page style notes: ${page.system_prompt}` : "",
+    page.page_intelligence
+      ? `\nLEARNED INTELLIGENCE (from real content approvals in this chat):\n${page.page_intelligence}`
+      : "\n(No approval history synced yet — evaluation based on niche profile only)",
   ].filter(Boolean).join("\n");
 
   return await callHaiku(

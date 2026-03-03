@@ -1,10 +1,14 @@
 require("dotenv").config();
 const http = require("http");
+const cron = require("node-cron");
 const { Telegraf } = require("telegraf");
-const { handleMessage }  = require("./handlers/messageHandler");
-const { handleGenerate } = require("./handlers/generateHandler");
-const { handleAddPage }  = require("./handlers/addPageHandler");
-const { handleStatus }   = require("./handlers/statusHandler");
+const { handleMessage }   = require("./handlers/messageHandler");
+const { handleGenerate }  = require("./handlers/generateHandler");
+const { handleAddPage }   = require("./handlers/addPageHandler");
+const { handleStatus }    = require("./handlers/statusHandler");
+const { handleSyncPage }  = require("./handlers/syncPageHandler");
+const { syncPageIntelligence } = require("./intelligence");
+const { getAllPages }      = require("./supabase");
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
@@ -12,6 +16,7 @@ const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 bot.command("generate",  (ctx) => handleGenerate(ctx));
 bot.command("addpage",   (ctx) => handleAddPage(ctx));
 bot.command("status",    (ctx) => handleStatus(ctx));
+bot.command("syncpage",  (ctx) => handleSyncPage(ctx));
 
 // ── Passive listener ──────────────────────────────────────────────────────────
 bot.on("message", (ctx) => handleMessage(ctx));
@@ -65,6 +70,23 @@ if (WEBHOOK_URL) {
   // Local dev — use polling
   bot.launch().then(() => console.log("✅ Content Bot running via polling (local)"));
 }
+
+// ── Weekly intelligence sync — every Sunday at 3am UTC ───────────────────────
+cron.schedule("0 3 * * 0", async () => {
+  console.log("[cron] 🔄 Weekly page intelligence sync starting...");
+  try {
+    const pages = await getAllPages();
+    console.log(`[cron] Syncing ${pages.length} page(s)...`);
+    for (const page of pages) {
+      await syncPageIntelligence(page);
+      // Small gap between pages to avoid rate limits
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+    console.log("[cron] ✅ Weekly sync complete");
+  } catch (err) {
+    console.error("[cron] Weekly sync error:", err.message);
+  }
+});
 
 process.once("SIGINT",  () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));

@@ -53,6 +53,28 @@ async function listPages() {
 
 // ── Review log ────────────────────────────────────────────────────────────────
 
+/**
+ * Store learned page intelligence from real approval history.
+ */
+async function updatePageIntelligence(chatId, intelligence) {
+  const { error } = await supabase.from("pages").update({
+    page_intelligence:       intelligence,
+    intelligence_updated_at: new Date().toISOString(),
+  }).eq("chat_id", String(chatId));
+  if (error) console.error("updatePageIntelligence error:", error.message);
+}
+
+/**
+ * Fetch all registered pages (full objects) — used by weekly cron sync.
+ */
+async function getAllPages() {
+  const { data, error } = await supabase.from("pages").select("*");
+  if (error) return [];
+  return data || [];
+}
+
+// ── Review log ────────────────────────────────────────────────────────────────
+
 async function logReview({ chatId, handle, content, factVerdict, copyrightVerdict, sourceVerdict }) {
   const { error } = await supabase.from("reviews").insert({
     chat_id:           String(chatId),
@@ -127,5 +149,5 @@ async function getRecentCorrections(chatId, limit = 5) {
   return data || [];
 }
 
-module.exports = { getPage, upsertPage, listPages, logReview, getRecentReviews, logGeneration, logCorrection, getRecentCorrections };
+module.exports = { getPage, upsertPage, listPages, getAllPages, updatePageIntelligence, logReview, getRecentReviews, logGeneration, logCorrection, getRecentCorrections };
 

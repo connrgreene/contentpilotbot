@@ -1,6 +1,7 @@
 const { upsertPage, getPage } = require("../supabase");
-const { callSonnet } = require("../claude");
-const { ORG_LIBRARY } = require("../library");
+const { callSonnet }          = require("../claude");
+const { ORG_LIBRARY }         = require("../library");
+const { syncPageIntelligence } = require("../intelligence");
 
 /**
  * /addpage @handle Niche [optional content focus]
@@ -70,9 +71,17 @@ Output ONLY the guidance text, no headers, no quotes.`
 The bot will now auto-review all content submissions in this chat.
 
 Use \`/generate\` to create super post concepts.
-Use \`/status\` to see this page's config.`,
+Use \`/status\` to see this page's config.
+Use \`/syncpage\` to refresh page intelligence anytime.
+
+_⏳ Running initial intelligence sync in the background..._`,
       { parse_mode: "Markdown" }
     );
+
+    // Fire intelligence sync in background — don't block registration response
+    getPage(chatId)
+      .then((newPage) => syncPageIntelligence(newPage))
+      .catch((err) => console.error("addPage bg sync error:", err.message));
 
   } catch (err) {
     console.error("handleAddPage error:", err.message);
