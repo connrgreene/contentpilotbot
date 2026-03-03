@@ -79,4 +79,47 @@ Summarize findings in 3-5 concise bullet points. If nothing relevant found, say 
   }
 }
 
-module.exports = { callHaiku, callSonnet, callSonnetWithMCP, getOrgContext };
+/**
+ * Analyze video frames or a photo using Claude Vision.
+ * Returns a short visual summary string to inject into fact/copyright checks.
+ * @param {string[]} images - array of base64 JPEG strings
+ * @param {string} caption - the text caption submitted alongside the media
+ */
+async function analyzeVisual(images, caption) {
+  if (!images || images.length === 0) return "";
+  try {
+    const imageBlocks = images.map((data) => ({
+      type: "image",
+      source: { type: "base64", media_type: "image/jpeg", data },
+    }));
+
+    const res = await client.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 800,
+      messages: [{
+        role: "user",
+        content: [
+          ...imageBlocks,
+          {
+            type: "text",
+            text: `Caption submitted with this media: "${caption}"
+
+Analyze these ${images.length} frame(s) for a social media content review. Be concise:
+1. What is visually shown? (people, setting, action, on-screen text)
+2. Does the visual match the caption's claims?
+3. Any visible watermarks, logos, or third-party branding?
+4. Any on-screen text that contradicts or adds to the caption?
+5. Overall: does this look like original content or repurposed material?`,
+          },
+        ],
+      }],
+    });
+
+    return res.content.find((b) => b.type === "text")?.text?.trim() ?? "";
+  } catch (err) {
+    console.error("analyzeVisual error:", err.message);
+    return "";
+  }
+}
+
+module.exports = { callHaiku, callSonnet, callSonnetWithMCP, getOrgContext, analyzeVisual };

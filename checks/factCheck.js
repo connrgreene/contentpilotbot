@@ -11,7 +11,7 @@ function extractClaimQueries(content) {
   return claimLike.slice(0, 4).map((s) => s.slice(0, 120));
 }
 
-async function factCheck(content, page, orgContext = "") {
+async function factCheck(content, page, orgContext = "", visualContext = "") {
   // Step 1: Search for sources on the key claims
   const queries = extractClaimQueries(content);
 
@@ -26,17 +26,21 @@ async function factCheck(content, page, orgContext = "") {
   // Step 2: Strict fact-check with two-source hard rule
   return await callSonnet(
     buildSystemPrompt(page),
-    `You are a strict fact-checker. Apply these HARD RULES with no exceptions:
+    `You are a strict fact-checker for social media content. Apply these HARD RULES:
 
-HARD RULES:
-1. Every specific claim (name, date, stat, record, score, financial figure) MUST be supported by a minimum of TWO independent sources to receive ✅
+FIRST — IDENTIFY CONTENT TYPE:
+- If the content describes a MOVIE or TV SHOW PLOT (e.g. "In the film X, character Y does Z"), treat those as PLOT DESCRIPTIONS and verify them against entertainment sources (IMDb, Wikipedia plot summaries). Fictional storylines are not real-world factual claims — do not flag them as misinformation simply because they describe fictional events or character actions.
+- If the content describes REAL PEOPLE doing real things outside of a fictional context, apply the full two-source rule below.
+
+HARD RULES (for real-world factual claims only):
+1. Every specific claim (name, date, stat, record, score, financial figure) MUST be supported by TWO independent sources to receive ✅
 2. If only ONE source supports a claim → ⚠️ SINGLE SOURCE — needs second verification
 3. If ZERO sources support a claim → ❌ UNSOURCED — cannot approve
 4. If a claim is directly contradicted by sources → ❌ WRONG — state the correction
 5. If a person is listed as dead but sources show they are alive → ❌ FACTUAL ERROR
-6. If list items don't match the post's stated premise (e.g. alive person on "died broke" list) → ❌ CONCEPT INTEGRITY FAILURE
+6. If list items don't match the post's stated premise → ❌ CONCEPT INTEGRITY FAILURE
 
-For each claim in the content, output:
+For each claim output:
 [STATUS] Claim — reason + sources found (or "no sources found")
 
 End with:
@@ -47,7 +51,7 @@ Content:
 """
 ${content.slice(0, 2000)}
 """
-${searchContext}${orgContext ? `\n\nORG CONTEXT (from Telegram — prior decisions & standards):\n${orgContext}` : ""}`
+${searchContext}${orgContext ? `\n\nORG CONTEXT (from Telegram — prior decisions & standards):\n${orgContext}` : ""}${visualContext ? `\n\nVISUAL ANALYSIS (from submitted video/image):\n${visualContext}` : ""}`
   );
 }
 

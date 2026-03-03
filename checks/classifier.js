@@ -17,9 +17,20 @@ async function isContentSubmission(text) {
 
   const verdict = await callHaiku(
     `You are a filter for a Telegram content approval chat used by a social media team.
-Your job is to detect whether a message contains content being considered for posting — even if it's phrased casually.
-Say "yes" if the message includes ANY of: a post caption, a description of a video/clip, a story pitch, a fact or topic someone wants to post about, or anything prefaced with phrases like "thinking about posting", "what about this", "I want to post", "review this", etc.
-Say "no" ONLY if it is pure chat with zero content (e.g. "sounds good", "let's do it", "approved").
+Classify whether a message is a CONTENT SUBMISSION (actual post being pitched for Instagram) or INTERNAL CHAT (team discussion, strategy, workflow, feedback, reactions).
+
+Say "yes" ONLY if the message contains actual post content being submitted for review:
+- A caption, description, or script for an Instagram post, reel, or carousel
+- A list of facts/moments being pitched as a post
+- Prefaced with "thinking about posting", "review this", "what about this post", etc.
+
+Say "no" for ALL of these — even if they mention content, posts, or ideas:
+- Internal strategy discussions ("we should implement X", "this would do well on FB")
+- Feedback or reactions to the bot's previous reviews
+- Team coordination messages ("approved", "send it", "let's do this")
+- Questions about workflow or the bot itself
+- General chit-chat or emoji reactions
+
 Answer ONLY "yes" or "no".`,
     `Message:
 """

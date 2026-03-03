@@ -96,5 +96,36 @@ async function logGeneration({ chatId, handle, title, hook, items, tone, seedTop
   if (error) console.error("logGeneration error:", error.message);
 }
 
-module.exports = { getPage, upsertPage, listPages, logReview, getRecentReviews, logGeneration };
+// ── Human feedback / corrections ───────────────────────────────────────────────
+
+/**
+ * Store a human correction on a bot review.
+ * Called when someone replies directly to a ContentPilotBot message.
+ */
+async function logCorrection({ chatId, handle, botReviewSnippet, correctionText }) {
+  const { error } = await supabase.from("corrections").insert({
+    chat_id:            String(chatId),
+    handle,
+    bot_review_snippet: botReviewSnippet?.slice(0, 500),
+    correction_text:    correctionText?.slice(0, 1000),
+    corrected_at:       new Date().toISOString(),
+  });
+  if (error) console.error("logCorrection error:", error.message);
+}
+
+/**
+ * Fetch recent human corrections for a chat to include as context in future reviews.
+ */
+async function getRecentCorrections(chatId, limit = 5) {
+  const { data, error } = await supabase
+    .from("corrections")
+    .select("correction_text, corrected_at")
+    .eq("chat_id", String(chatId))
+    .order("corrected_at", { ascending: false })
+    .limit(limit);
+  if (error) return [];
+  return data || [];
+}
+
+module.exports = { getPage, upsertPage, listPages, logReview, getRecentReviews, logGeneration, logCorrection, getRecentCorrections };
 

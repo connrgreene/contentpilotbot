@@ -29,7 +29,7 @@ function buildCopyrightQueries(content, page) {
   return queries.slice(0, 3);
 }
 
-async function copyrightCheck(content, page, orgContext = "") {
+async function copyrightCheck(content, page, orgContext = "", visualContext = "") {
   // Run web searches to find existing similar content and original sources
   const queries = buildCopyrightQueries(content, page);
   const results = await tavilyMultiSearch(queries, { maxResults: 4 });
@@ -61,7 +61,7 @@ Content:
 """
 ${content.slice(0, 2000)}
 """
-${searchContext}${orgContext ? `\n\nORG CONTEXT (from Telegram — prior decisions & flagged formats):\n${orgContext}` : ""}`
+${searchContext}${orgContext ? `\n\nORG CONTEXT (from Telegram — prior decisions & flagged formats):\n${orgContext}` : ""}${visualContext ? `\n\nVISUAL ANALYSIS (from submitted video/image):\n${visualContext}` : ""}`
   );
 }
 
