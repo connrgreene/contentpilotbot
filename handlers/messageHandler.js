@@ -5,6 +5,7 @@ const { factCheck }      = require("../checks/factCheck");
 const { copyrightCheck } = require("../checks/copyrightCheck");
 const { sourceCheck }    = require("../checks/sourceCheck");
 const { extractVideoFrames, getPhotoBase64, downloadTelegramFile } = require("../media");
+const { extractInstagramUrl, enrichInstagramLink } = require("../instagram");
 
 // Dedup — avoid processing the same message twice
 const reviewed = new Set();
@@ -49,9 +50,18 @@ async function handleMessage(ctx) {
       return;
     }
 
+    // ── Instagram link shortcut — enrich and skip classifier ─────────────────
+    let instagramContext = "";
+    const igUrl = extractInstagramUrl(text);
+    if (igUrl) {
+      console.log(`[ig] enriching ${igUrl}`);
+      instagramContext = await enrichInstagramLink(igUrl);
+    }
+
     // ── Is this a content submission? ─────────────────────────────────────────
-    const isSubmission = await isContentSubmission(text);
-    console.log(`[msg] isSubmission=${isSubmission} for chatId=${chatId}`);
+    // Instagram links are always treated as submissions
+    const isSubmission = igUrl ? true : await isContentSubmission(text);
+    console.log(`[msg] isSubmission=${isSubmission} igUrl=${igUrl || "none"} for chatId=${chatId}`);
 
     if (!isSubmission) {
       // ── Contextual feedback detection (no Telegram reply needed) ─────────────
@@ -106,7 +116,8 @@ async function handleMessage(ctx) {
       ? `\n\nRECENT HUMAN CORRECTIONS IN THIS CHAT:\n${corrections.map((c, i) => `${i + 1}. ${c.correction_text}`).join("\n")}`
       : "";
 
-    const fullOrgContext = orgContext + correctionContext;
+    const fullOrgContext = orgContext + correctionContext +
+      (instagramContext ? `\n\nINSTAGRAM LINK CONTEXT:\n${instagramContext}` : "");
 
     // ── Run all checks in parallel ────────────────────────────────────────────
     const [factResult, copyrightResult, sourceResult] = await Promise.all([

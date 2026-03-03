@@ -4,7 +4,7 @@ const { callHaiku } = require("../claude");
 const CHATTER_PATTERNS = [
   /^(ok|okay|yessir|yes sir|got it|gotchu|all good|nice|lol|haha|sure|sounds good|let'?s go|fire|rest good|ty|thx|thanks|approved|👍|🔥|💯|✅|yep|yup|nope|no|yes|great|perfect|done)/i,
   /^@\w+(\s@\w+)*$/, // just mentions
-  /^https?:\/\/\S+$/, // just a single link (source reply, not a submission)
+  /^https?:\/\/(?!www\.instagram\.com)\S+$/, // bare non-Instagram links (source replies)
 ];
 
 /**
