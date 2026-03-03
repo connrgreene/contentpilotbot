@@ -11,20 +11,25 @@ function extractClaimQueries(content) {
   return claimLike.slice(0, 4).map((s) => s.slice(0, 120));
 }
 
+function getDomain(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; }
+}
+
 async function factCheck(content, page, orgContext = "", visualContext = "") {
   // Step 1: Search for sources on the key claims
   const queries = extractClaimQueries(content);
 
+  let searchResults = [];
   let searchContext = "";
   if (queries.length > 0) {
-    const results = await tavilyMultiSearch(queries, { maxResults: 3 });
-    searchContext = results.length
-      ? `\n\nWEB SEARCH RESULTS (use these as your sources):\n${formatSearchResults(results)}`
+    searchResults = await tavilyMultiSearch(queries, { maxResults: 3 });
+    searchContext = searchResults.length
+      ? `\n\nWEB SEARCH RESULTS (use these as your sources):\n${formatSearchResults(searchResults)}`
       : "\n\nWEB SEARCH: No results returned.";
   }
 
   // Step 2: Strict fact-check with two-source hard rule
-  return await callSonnet(
+  const verdict = await callSonnet(
     buildSystemPrompt(page),
     `You are a strict fact-checker for social media content. Apply these HARD RULES:
 
@@ -51,6 +56,12 @@ ${content.slice(0, 2000)}
 """
 ${searchContext}${orgContext ? `\n\nORG CONTEXT (from Telegram — prior decisions & standards):\n${orgContext}` : ""}${visualContext ? `\n\nVISUAL ANALYSIS (from submitted video/image):\n${visualContext}` : ""}`
   );
+
+  // Append the domains searched so the team can see what sources were checked
+  const domains = [...new Set(searchResults.map((r) => getDomain(r.url)))].slice(0, 4);
+  return domains.length
+    ? `${verdict}\n_Sources checked: ${domains.join(", ")}_`
+    : verdict;
 }
 
 module.exports = { factCheck };
