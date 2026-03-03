@@ -41,4 +41,34 @@ ${text.slice(0, 800)}
   return verdict.toLowerCase().startsWith("yes");
 }
 
-module.exports = { isContentSubmission };
+/**
+ * Returns true if the message looks like a correction or feedback
+ * about a previous bot review — even without using Telegram's reply feature.
+ * Only called after isContentSubmission returns false.
+ */
+async function isFeedbackCorrection(text) {
+  if (!text || text.length < 20) return false;
+
+  const verdict = await callHaiku(
+    `You are monitoring a Telegram content approval chat for a social media team.
+Detect whether a message is a CORRECTION or FEEDBACK about the AI bot's previous content review.
+
+Say "yes" if the message:
+- Corrects or disputes something the bot said (e.g. "that's a plot point, not a fact", "the bot got this wrong", "actually that's accurate")
+- Comments on the quality or accuracy of a review ("it's judging too harshly", "needs more context")
+- States a standard or rule the bot should follow in future ("we don't flag movie plots as misinformation")
+- Expresses disagreement or agreement with a specific verdict the bot gave
+
+Say "no" if it's just general team chat, strategy, or unrelated to a bot review.
+
+Answer ONLY "yes" or "no".`,
+    `Message:
+"""
+${text.slice(0, 600)}
+"""`
+  );
+
+  return verdict.toLowerCase().startsWith("yes");
+}
+
+module.exports = { isContentSubmission, isFeedbackCorrection };

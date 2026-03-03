@@ -1,6 +1,6 @@
 const { getPage, logReview, logCorrection, getRecentCorrections } = require("../supabase");
 const { getOrgContext, analyzeVisual } = require("../claude");
-const { isContentSubmission } = require("../checks/classifier");
+const { isContentSubmission, isFeedbackCorrection } = require("../checks/classifier");
 const { factCheck }      = require("../checks/factCheck");
 const { copyrightCheck } = require("../checks/copyrightCheck");
 const { sourceCheck }    = require("../checks/sourceCheck");
@@ -52,7 +52,21 @@ async function handleMessage(ctx) {
     // ── Is this a content submission? ─────────────────────────────────────────
     const isSubmission = await isContentSubmission(text);
     console.log(`[msg] isSubmission=${isSubmission} for chatId=${chatId}`);
-    if (!isSubmission) return;
+
+    if (!isSubmission) {
+      // ── Contextual feedback detection (no Telegram reply needed) ─────────────
+      const isCorrection = await isFeedbackCorrection(text);
+      if (isCorrection) {
+        await logCorrection({
+          chatId,
+          handle:            page.handle,
+          botReviewSnippet:  null, // no specific reply — contextual correction
+          correctionText:    text,
+        });
+        console.log(`[feedback] contextual correction stored for ${page.handle}`);
+      }
+      return;
+    }
 
     // ── Acknowledge ───────────────────────────────────────────────────────────
     const statusMsg = await ctx.reply("🔍 Reviewing...", {
