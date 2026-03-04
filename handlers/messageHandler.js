@@ -10,7 +10,17 @@ const { extractInstagramUrl, enrichInstagramLink } = require("../instagram");
 // Dedup — avoid processing the same message twice
 const reviewed = new Set();
 
+/**
+ * Race a promise against a timeout. Returns `fallback` if time runs out.
+ * Prevents any single API call from blocking the entire review forever.
+ */
+function withTimeout(promise, ms, fallback = "") {
+  const timer = new Promise((resolve) => setTimeout(() => resolve(fallback), ms));
+  return Promise.race([promise, timer]);
+}
+
 async function handleMessage(ctx) {
+  let statusMsg = null; // declared outside try so catch can update it
   try {
     const msg = ctx.message;
     if (msg.from?.is_bot) return;
@@ -83,7 +93,7 @@ async function handleMessage(ctx) {
     }
 
     // ── Acknowledge ───────────────────────────────────────────────────────────
-    const statusMsg = await ctx.reply("🔍 Reviewing...", {
+    statusMsg = await ctx.reply("🔍 Reviewing...", {
       reply_to_message_id: msg.message_id,
     });
 
@@ -114,8 +124,9 @@ async function handleMessage(ctx) {
     }
 
     // ── Fetch org context + recent human corrections ──────────────────────────
+    // getOrgContext uses MCP (can be slow) — cap at 20s, fall back to "" gracefully
     const [orgContext, corrections] = await Promise.all([
-      getOrgContext(page),
+      withTimeout(getOrgContext(page), 20000, ""),
       getRecentCorrections(chatId),
     ]);
 
@@ -126,11 +137,11 @@ async function handleMessage(ctx) {
     const fullOrgContext = orgContext + correctionContext +
       (instagramContext ? `\n\nINSTAGRAM LINK CONTEXT:\n${instagramContext}` : "");
 
-    // ── Run all checks in parallel ────────────────────────────────────────────
+    // ── Run all checks in parallel (60s timeout each) ────────────────────────
     const [factResult, copyrightResult, fitResult] = await Promise.all([
-      factCheck(text, page, fullOrgContext, visualContext),
-      copyrightCheck(text, page, fullOrgContext, visualContext),
-      fitCheck(text, page),
+      withTimeout(factCheck(text, page, fullOrgContext, visualContext),     60000, "⚠️ Fact check timed out — please resubmit."),
+      withTimeout(copyrightCheck(text, page, fullOrgContext, visualContext), 60000, "⚠️ Copyright check timed out — please resubmit."),
+      withTimeout(fitCheck(text, page),                                      30000, "⚠️ Fit check timed out — please resubmit."),
     ]);
 
     // ── Build reply ───────────────────────────────────────────────────────────
@@ -161,6 +172,25 @@ async function handleMessage(ctx) {
 
   } catch (err) {
     console.error("handleMessage error:", err.message);
+
+    // Always update the status message so it never stays stuck as "🔍 Reviewing..."
+    if (statusMsg) {
+      const isRateLimit = err.message?.includes("rate_limit") || err.message?.includes("429");
+      const isTimeout   = err.message?.includes("timed out") || err.message?.includes("timeout");
+      const userMsg = isRateLimit
+        ? "⏳ Rate limit hit — please try again in 1–2 minutes."
+        : isTimeout
+        ? "⏳ Review timed out — please resubmit."
+        : "❌ Review failed — please try again.";
+
+      try {
+        await ctx.telegram.editMessageText(
+          statusMsg.chat.id, statusMsg.message_id, undefined, userMsg
+        );
+      } catch (editErr) {
+        console.error("Failed to update status message:", editErr.message);
+      }
+    }
   }
 }
 

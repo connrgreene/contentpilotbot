@@ -56,6 +56,7 @@ async function getOrgContext(page) {
     const res = await client.beta.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 600,
+      timeout: 25000, // 25s — never block a review for longer than this
       messages: [{
         role: "user",
         content: `You have access to Bolis Media's Telegram channels via the telegram MCP tool.
