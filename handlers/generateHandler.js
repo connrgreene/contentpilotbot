@@ -34,8 +34,8 @@ async function handleGenerate(ctx) {
       { reply_to_message_id: ctx.message.message_id }
     );
 
-    const raw = await callSonnetWithMCP(
-      buildSystemPrompt(page),
+    // 120s timeout — MCP searches + generation takes longer than reviews
+    const mcpPromise = callSonnetWithMCP(buildSystemPrompt(page),
       `Generate EXACTLY 3 super post concepts for ${page.handle}. No more, no less.
 Tone: ${tone}
 ${seedTopic ? `Seed topic: ${seedTopic}` : `Pick the most viral-worthy topics for ${page.niche}.`}
@@ -55,6 +55,19 @@ For each post:
 Respond ONLY with valid JSON, no markdown:
 {"posts":[{"title":"...","hook":"...","items":["...","...","...","...","...","...","...","...","...","..."]}]}`
     );
+    const timeoutMsg = "__TIMEOUT__";
+    const raw = await Promise.race([
+      mcpPromise,
+      new Promise((resolve) => setTimeout(() => resolve(timeoutMsg), 120000)),
+    ]);
+
+    if (raw === timeoutMsg) {
+      await ctx.telegram.editMessageText(
+        statusMsg.chat.id, statusMsg.message_id, undefined,
+        "⏳ Generation timed out — the MCP search took too long. Try `/generate` again."
+      );
+      return;
+    }
 
     let posts;
     try {
@@ -102,7 +115,14 @@ Respond ONLY with valid JSON, no markdown:
 
   } catch (err) {
     console.error("handleGenerate error:", err.message);
-    await ctx.reply("❌ Generation failed. Try again.");
+    const isRateLimit = err.message?.includes("rate_limit") || err.message?.includes("429");
+    const isTimeout   = err.message?.includes("timed out") || err.message?.includes("timeout");
+    const msg = isRateLimit
+      ? "⏳ Rate limit hit — please try again in 1–2 minutes."
+      : isTimeout
+      ? "⏳ Generation timed out — please try again."
+      : `❌ Generation failed: ${err.message?.slice(0, 100) || "unknown error"}`;
+    await ctx.reply(msg);
   }
 }
 

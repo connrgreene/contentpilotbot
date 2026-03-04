@@ -70,7 +70,7 @@ function buildSystemPrompt(page) {
 Niche: ${page.niche}
 ${page.content_focus ? `Content focus: ${page.content_focus}` : ""}
 ${page.system_prompt ? `\nPage-specific guidance:\n${page.system_prompt}` : ""}
-${page.page_intelligence ? `\n## LEARNED PAGE INTELLIGENCE (from real content approvals):\n${page.page_intelligence}` : ""}
+${page.page_intelligence ? `\n## LEARNED PAGE INTELLIGENCE (from real content approvals):\n${page.page_intelligence.slice(0, 1500)}` : ""}
 `;
 }
 
